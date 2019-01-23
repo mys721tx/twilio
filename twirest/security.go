@@ -15,13 +15,13 @@ import (
 var ErrSignature = errors.New("Invalid X-Twilio-Signature")
 
 // ValidateRequest will take the incoming http.Request on a Twilio callback
-// URL and verify that the X-Twilio-Signature is correct. fullUrl must be
+// URL and verify that the X-Twilio-Signature is correct. fullURL must be
 // in the format of https://www.exampe.com/twilio/callback?param1=exists
 //
 // This can be used to create custom middleware to make it easy to verify
 // the request is sent from Twilio. Documentation about this method is
 // available at https://www.twilio.com/docs/api/security#validating-requests
-func (twiClient *TwilioClient) ValidateRequest(fullUrl string, req *http.Request) error {
+func (c *Client) ValidateRequest(fullURL string, req *http.Request) error {
 	twilioSignature := req.Header.Get("X-Twilio-Signature")
 	if twilioSignature == "" {
 		return ErrSignature
@@ -29,7 +29,7 @@ func (twiClient *TwilioClient) ValidateRequest(fullUrl string, req *http.Request
 
 	var toEncode []string
 
-	toEncode = append(toEncode, fullUrl)
+	toEncode = append(toEncode, fullURL)
 
 	if req.Method == "POST" {
 		err := req.ParseForm()
@@ -38,7 +38,7 @@ func (twiClient *TwilioClient) ValidateRequest(fullUrl string, req *http.Request
 		}
 
 		var sortedParams []string
-		for value, _ := range req.PostForm {
+		for value := range req.PostForm {
 			sortedParams = append(sortedParams, value)
 		}
 		sort.Strings(sortedParams)
@@ -51,14 +51,14 @@ func (twiClient *TwilioClient) ValidateRequest(fullUrl string, req *http.Request
 
 	validateString := strings.Join(toEncode, "")
 
-	mac := hmac.New(sha1.New, []byte(twiClient.authToken))
+	mac := hmac.New(sha1.New, []byte(c.authToken))
 	mac.Write([]byte(validateString))
 	hashed := mac.Sum(nil)
 	expectedSignature := base64.StdEncoding.EncodeToString(hashed)
 
-	if twilioSignature == expectedSignature {
-		return nil
-	} else {
+	if twilioSignature != expectedSignature {
 		return ErrSignature
 	}
+
+	return nil
 }

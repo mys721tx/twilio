@@ -17,21 +17,21 @@ import (
 	"strings"
 )
 
-const ApiVer string = "2010-04-01"
+const APIVer string = "2010-04-01"
 
 const (
 	tag   = 0
 	value = 1
 )
 
-// TwilioClient struct for holding a http client and user credentials
-type TwilioClient struct {
+// Client struct for holding a http client and user credentials
+type Client struct {
 	httpclient                    *http.Client
 	accountSid, authToken, apiURL string
 }
 
-// Create a new client
-func NewClient(accountSid, authToken, apiURL string) *TwilioClient {
+// NewClient creates a new client.
+func NewClient(accountSid, authToken, apiURL string) *Client {
 	// certPool := x509.NewCertPool()
 	// pemFile, err := os.Open("cacert.pem")
 	// if err != nil {
@@ -50,28 +50,28 @@ func NewClient(accountSid, authToken, apiURL string) *TwilioClient {
 		apiURL = "https://api.twilio.com/"
 	}
 
-	return &TwilioClient{client, accountSid, authToken, apiURL}
+	return &Client{client, accountSid, authToken, apiURL}
 }
 
 // Request makes a REST resource or action request from twilio servers and
 // returns the response. The type of request is determined by the request
 // struct supplied.
-func (twiClient *TwilioClient) Request(reqStruct interface{}) (
+func (c *Client) Request(reqStruct interface{}) (
 	TwilioResponse, error) {
 
 	twiResp := TwilioResponse{}
 
 	// setup a POST/GET/DELETE http request from request struct
-	httpReq, err := httpRequest(reqStruct, twiClient.accountSid, twiClient.apiURL)
+	httpReq, err := httpRequest(reqStruct, c.accountSid, c.apiURL)
 	if err != nil {
 		return twiResp, err
 	}
 	// add authentication and headers to the http request
-	httpReq.SetBasicAuth(twiClient.accountSid, twiClient.authToken)
+	httpReq.SetBasicAuth(c.accountSid, c.authToken)
 	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	httpReq.Header.Set("Accept", "*/*")
 
-	response, err := twiClient.httpclient.Do(httpReq)
+	response, err := c.httpclient.Do(httpReq)
 	if err != nil {
 		return twiResp, err
 	}
@@ -166,7 +166,7 @@ func queryString(reqSt interface{}) (qryStr string) {
 // urlString constructs the REST resource url
 func urlString(reqStruct interface{}, accSid, apiURL string) (url string, err error) {
 
-	url = apiURL + ApiVer + "/Accounts"
+	url = apiURL + APIVer + "/Accounts"
 
 	m := make(map[string][2]string)
 	// Map the name of the fields in the struct with the values and tags
