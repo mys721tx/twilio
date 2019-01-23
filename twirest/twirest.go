@@ -26,12 +26,12 @@ const (
 
 // TwilioClient struct for holding a http client and user credentials
 type TwilioClient struct {
-	httpclient            *http.Client
-	accountSid, authToken string
+	httpclient                    *http.Client
+	accountSid, authToken, apiURL string
 }
 
 // Create a new client
-func NewClient(accountSid, authToken string) *TwilioClient {
+func NewClient(accountSid, authToken, apiURL string) *TwilioClient {
 	// certPool := x509.NewCertPool()
 	// pemFile, err := os.Open("cacert.pem")
 	// if err != nil {
@@ -46,7 +46,11 @@ func NewClient(accountSid, authToken string) *TwilioClient {
 		DisableCompression: true}
 	client := &http.Client{Transport: tr}
 
-	return &TwilioClient{client, accountSid, authToken}
+	if apiURL == "" {
+		apiURL = "https://api.twilio.com/"
+	}
+
+	return &TwilioClient{client, accountSid, authToken, apiURL}
 }
 
 // Request makes a REST resource or action request from twilio servers and
@@ -58,7 +62,7 @@ func (twiClient *TwilioClient) Request(reqStruct interface{}) (
 	twiResp := TwilioResponse{}
 
 	// setup a POST/GET/DELETE http request from request struct
-	httpReq, err := httpRequest(reqStruct, twiClient.accountSid)
+	httpReq, err := httpRequest(reqStruct, twiClient.accountSid, twiClient.apiURL)
 	if err != nil {
 		return twiResp, err
 	}
@@ -96,10 +100,10 @@ func exceptionToErr(twir TwilioResponse) (code int, err error) {
 
 // httpRequest creates a http REST request from the supplied request struct
 // and the account Sid
-func httpRequest(reqStruct interface{}, accountSid string) (
+func httpRequest(reqStruct interface{}, accountSid, apiURL string) (
 	httpReq *http.Request, err error) {
 
-	url, err := urlString(reqStruct, accountSid)
+	url, err := urlString(reqStruct, accountSid, apiURL)
 	if err != nil {
 		return httpReq, err
 	}
@@ -160,9 +164,9 @@ func queryString(reqSt interface{}) (qryStr string) {
 }
 
 // urlString constructs the REST resource url
-func urlString(reqStruct interface{}, accSid string) (url string, err error) {
+func urlString(reqStruct interface{}, accSid, apiURL string) (url string, err error) {
 
-	url = "https://api.twilio.com/" + ApiVer + "/Accounts"
+	url = apiURL + ApiVer + "/Accounts"
 
 	m := make(map[string][2]string)
 	// Map the name of the fields in the struct with the values and tags
